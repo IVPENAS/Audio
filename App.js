@@ -2,12 +2,12 @@ import React from 'react';
 import { StyleSheet, Text, View, Button, TouchableOpacity, Pressable, Animated, Easing, FlatList, ScrollView } from 'react-native';
 import { Audio } from 'expo-av';
 import { FontAwesome5 } from '@expo/vector-icons'
-/* import WaveForm from 'react-native-audiowaveform'; */
 
 export default function App() {
   const [recording, setRecording] = React.useState();
   const [recordings, setRecordings] = React.useState([]);
-  const [sound, setSound] = React.useState();
+  const [onAudioSampleReceived, setOnAudioSampleReceived] = React.useState(null); // Declare the state
+  /* const formatTime = (seconds) => [seconds / 60, seconds % 60].map((v) => `0${Math.floor(v)}`.slice(-2)).join(':') */
 
   async function startRecording() {
     try {
@@ -34,15 +34,30 @@ export default function App() {
     await recording.stopAndUnloadAsync();
     let allRecordings = [...recordings];
     const { sound, status } = await recording.createNewLoadedSoundAsync();
+    
+    // Convert loaded audio to JSON string
+    const loadedAudioJson = JSON.stringify({
+      sound: sound,
+      duration: getDurationFormatted(status.durationMillis),
+      file: recording.getURI(),
+    });
+    // Log the JSON string to the console
+    console.log('Loaded Audio JSON:', loadedAudioJson);
+
     allRecordings.push({
       sound: sound,
       duration: getDurationFormatted(status.durationMillis),
       file: recording.getURI()
     });
     setRecordings(allRecordings);
+    
+    // Use the loaded audio JSON string as needed
+    if (onAudioSampleReceived) {
+      onAudioSampleReceived(loadedAudioJson);
+    }
   }
 
-
+  
 //Duration of the audio
   function getDurationFormatted(milliseconds) {
     const minutes = milliseconds / 1000 / 60 ;
@@ -67,7 +82,6 @@ export default function App() {
               <FontAwesome5 name="play" size={17} color="gray"/>
           </TouchableOpacity>
         </View>
-        
       );
     });
   }
@@ -93,6 +107,7 @@ export default function App() {
       <Text style = {styles.clear} onPress={clearRecordings}>Clear Recordings</Text>
       {/* <Button title={recordings.length > 0 ? 'Clear Recordings' : '' } onPress={clearRecordings} /> */}
 
+      
       {/* Play Button */}
       <View style = {styles.footer}>
         <Pressable style = {styles.recordButton} onPress={recording ? stopRecording : startRecording}>
