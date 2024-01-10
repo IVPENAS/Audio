@@ -2,11 +2,14 @@ import React from 'react';
 import { StyleSheet, Text, View, Button, TouchableOpacity, Pressable, Animated, Easing, FlatList, ScrollView } from 'react-native';
 import { Audio } from 'expo-av';
 import { FontAwesome5 } from '@expo/vector-icons'
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 
 export default function App() {
   const [recording, setRecording] = React.useState();
   const [recordings, setRecordings] = React.useState([]);
   const [onAudioSampleReceived, setOnAudioSampleReceived] = React.useState(null); // Declare the state
+  const [selectedAudioUri, setSelectedAudioUri] = React.useState(null);
   /* const formatTime = (seconds) => [seconds / 60, seconds % 60].map((v) => `0${Math.floor(v)}`.slice(-2)).join(':') */
 
   async function startRecording() {
@@ -90,7 +93,27 @@ export default function App() {
   function clearRecordings() {
     setRecordings([])
   }
-
+  //Loads the Uploaded Audio
+  async function pickAudio() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'audio/*',
+        copyToCacheDirectory: false,
+      });
+  
+      if (result.type === 'success') {
+        const { uri, name } = result;
+        // Optionally, you can copy the file to the app's cache directory
+        const copyUri = `${FileSystem.cacheDirectory}${name}`;
+        await FileSystem.copyAsync({ from: uri, to: copyUri });
+        
+        // Handle the audio file URI (copyUri) as needed
+        console.log('Selected Audio File:', copyUri);
+      }
+    } catch (err) {
+      console.error('Error picking audio file:', err);
+    }
+  }
 
  return (
     <View style={styles.container}>
@@ -103,8 +126,13 @@ export default function App() {
       </View>
 
 
+      {/* Upload Button */}
+      <TouchableOpacity style={styles.uploadButton} onPress={pickAudio}>
+        <Text style={styles.uploadText}>Upload Audio</Text>
+      </TouchableOpacity>
+
       {/* Clear Button */}
-      <Text style = {styles.clear} onPress={clearRecordings}>Clear Recordings</Text>
+     <Text style = {styles.clear} onPress={clearRecordings}>Clear Recordings</Text>
       {/* <Button title={recordings.length > 0 ? 'Clear Recordings' : '' } onPress={clearRecordings} /> */}
 
       
@@ -216,5 +244,16 @@ paddingHorizontal: 30,
 borderRadius: 30,
 marginTop: 10,
 alignItems: 'center'
+},
+uploadButton: {
+  backgroundColor: 'blue',
+  padding: 10,
+  borderRadius: 5,
+  marginTop: 10,
+},
+
+uploadText: {
+  color: 'white',
+  textAlign: 'center',
 },
 });
